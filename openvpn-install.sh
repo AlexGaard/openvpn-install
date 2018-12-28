@@ -3,6 +3,8 @@
 # Secure OpenVPN server installer for Debian, Ubuntu, CentOS, Fedora and Arch Linux
 # https://github.com/angristan/openvpn-install
 
+WORKING_DIRECTORY=$(cd `dirname $0` && pwd)
+
 function isRoot () {
 	if [ "$EUID" -ne 0 ]; then
 		return 1
@@ -945,15 +947,6 @@ function newClient () {
 		;;
 	esac
 
-	# Home directory of the user, where the client configuration (.ovpn) will be written
-	if [ -e "/home/$CLIENT" ]; then  # if $1 is a user name
-		homeDir="/home/$CLIENT"
-	elif [ "${SUDO_USER}" ]; then   # if not, use SUDO_USER
-		homeDir="/home/${SUDO_USER}"
-	else  # if not SUDO_USER, use /root
-		homeDir="/root"
-	fi
-
 	# Determine if we use tls-auth or tls-crypt
 	if grep -qs "^tls-crypt" /etc/openvpn/server.conf; then
 		TLS_SIG="1"
@@ -962,7 +955,7 @@ function newClient () {
 	fi
 
 	# Generates the custom client.ovpn
-	cp /etc/openvpn/client-template.txt "$homeDir/$CLIENT.ovpn"
+	cp /etc/openvpn/client-template.txt "$WORKING_DIRECTORY/$CLIENT.ovpn"
 	{
 		echo "<ca>"
 		cat "/etc/openvpn/easy-rsa/pki/ca.crt"
@@ -989,10 +982,10 @@ function newClient () {
 				echo "</tls-auth>"
 			;;
 		esac
-	} >> "$homeDir/$CLIENT.ovpn"
+	} >> "$WORKING_DIRECTORY/$CLIENT.ovpn"
 
 	echo ""
-	echo "Client $CLIENT added, the configuration file is available at $homeDir/$CLIENT.ovpn."
+	echo "Client $CLIENT added, the configuration file is available at $WORKING_DIRECTORY/$CLIENT.ovpn."
 	echo "Download the .ovpn file and import it in your OpenVPN client."
 }
 

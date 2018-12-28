@@ -196,7 +196,6 @@ function installQuestions () {
 	echo "Unless your server is behind NAT, it should be your public IPv4 address."
 
 	# Detect public IPv4 address and pre-fill for the user
-	IP=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
 	read -rp "IP address: " -e -i "$IP" IP
 	# If $IP is a private IP address, the server must be behind NAT
 	if echo "$IP" | grep -qE '^(10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.|192\.168)'; then
@@ -208,26 +207,9 @@ function installQuestions () {
 		done
 	fi
 
-	echo ""
-	echo "Checking for IPv6 connectivity..."
-	echo ""
-	# "ping6" and "ping -6" availability varies depending on the distribution
-	if type ping6 > /dev/null 2>&1; then
-		PING6="ping6 -c3 ipv6.google.com > /dev/null 2>&1"
-	else
-		PING6="ping -6 -c3 ipv6.google.com > /dev/null 2>&1"
-	fi
-	if eval "$PING6"; then
-		echo "Your host appears to have IPv6 connectivity."
-		SUGGESTION="y"
-	else
-		echo "Your host does not appear to have IPv6 connectivity."
-		SUGGESTION="n"
-	fi
-	echo ""
 	# Ask the user if they want to enable IPv6 regardless its availability.
 	until [[ $IPV6_SUPPORT =~ (y|n) ]]; do
-		read -rp "Do you want to enable IPv6 support (NAT)? [y/n]: " -e -i $SUGGESTION IPV6_SUPPORT
+		read -rp "Do you want to enable IPv6 support (NAT)? [y/n]: " -e IPV6_SUPPORT
 	done
 	echo ""
 	echo "What port do you want OpenVPN to listen to?"
@@ -235,7 +217,7 @@ function installQuestions () {
 	echo "   2) Custom"
 	echo "   3) Random [49152-65535]"
 	until [[ "$PORT_CHOICE" =~ ^[1-3]$ ]]; do
-		read -rp "Port choice [1-3]: " -e -i 1 PORT_CHOICE
+		read -rp "Port choice [1-3]: " -e PORT_CHOICE
 	done
 	case $PORT_CHOICE in
 		1)
@@ -243,7 +225,7 @@ function installQuestions () {
 		;;
 		2)
 			until [[ "$PORT" =~ ^[0-9]+$ ]] && [ "$PORT" -ge 1 ] && [ "$PORT" -le 65535 ]; do
-				read -rp "Custom port [1-65535]: " -e -i 1194 PORT
+				read -rp "Custom port [1-65535]: " -e PORT
 			done
 		;;
 		3)
@@ -258,7 +240,7 @@ function installQuestions () {
 	echo "   1) UDP"
 	echo "   2) TCP"
 	until [[ "$PROTOCOL_CHOICE" =~ ^[1-2]$ ]]; do
-		read -rp "Protocol [1-2]: " -e -i 1 PROTOCOL_CHOICE
+		read -rp "Protocol [1-2]: " -e PROTOCOL_CHOICE
 	done
 	case $PROTOCOL_CHOICE in
 		1)
@@ -282,7 +264,7 @@ function installQuestions () {
 	echo "   10) Yandex Basic (Russia)"
 	echo "   11) AdGuard DNS (Russia)"
 	until [[ "$DNS" =~ ^[0-9]+$ ]] && [ "$DNS" -ge 1 ] && [ "$DNS" -le 11 ]; do
-		read -rp "DNS [1-10]: " -e -i 3 DNS
+		read -rp "DNS [1-10]: " -e DNS
 			if [[ $DNS == 2 ]] && [[ -e /etc/unbound/unbound.conf ]]; then
 				echo ""
 				echo "Unbound is already installed."
@@ -304,14 +286,14 @@ function installQuestions () {
 	echo ""
 	echo "Do you want to use compression? It is not recommended since the VORACLE attack make use of it."
 	until [[ $COMPRESSION_ENABLED =~ (y|n) ]]; do
-		read -rp"Enable compression? [y/n]: " -e -i n COMPRESSION_ENABLED
+		read -rp"Enable compression? [y/n]: " -e COMPRESSION_ENABLED
 	done
 	if [[ $COMPRESSION_ENABLED == "y" ]];then
 		echo "Choose which compression algorithm you want to use:"
 		echo "   1) LZ4 (more efficient)"
 		echo "   2) LZ0"
 		until [[ $COMPRESSION_CHOICE =~ ^[1-2]$ ]]; do
-			read -rp"Compression algorithm [1-2]: " -e -i 1 COMPRESSION_CHOICE
+			read -rp"Compression algorithm [1-2]: " -e COMPRESSION_CHOICE
 		done
 		case $COMPRESSION_CHOICE in
 			1)
@@ -329,7 +311,7 @@ function installQuestions () {
 	echo "See https://github.com/angristan/openvpn-install#security-and-encryption to learn more."
 	echo ""
 	until [[ $CUSTOMIZE_ENC =~ (y|n) ]]; do
-		read -rp "Customize encryption settings? [y/n]: " -e -i n CUSTOMIZE_ENC
+		read -rp "Customize encryption settings? [y/n]: " -e CUSTOMIZE_ENC
 	done
 	if [[ $CUSTOMIZE_ENC == "n" ]];then
 		# Use default, sane and fast parameters
@@ -351,7 +333,7 @@ function installQuestions () {
 		echo "   5) AES-192-CBC"
 		echo "   6) AES-256-CBC"
 		until [[ "$CIPHER_CHOICE" =~ ^[1-6]$ ]]; do
-			read -rp "Cipher [1-6]: " -e -i 1 CIPHER_CHOICE
+			read -rp "Cipher [1-6]: " -e CIPHER_CHOICE
 		done
 		case $CIPHER_CHOICE in
 			1)
@@ -378,7 +360,7 @@ function installQuestions () {
 		echo "   1) ECDSA (recommended)"
 		echo "   2) RSA"
 		until [[ $CERT_TYPE =~ ^[1-2]$ ]]; do
-			read -rp"Certificate key type [1-2]: " -e -i 1 CERT_TYPE
+			read -rp"Certificate key type [1-2]: " -e CERT_TYPE
 		done
 		case $CERT_TYPE in
 			1)
@@ -388,7 +370,7 @@ function installQuestions () {
 				echo "   2) secp384r1"
 				echo "   3) secp521r1"
 				until [[ $CERT_CURVE_CHOICE =~ ^[1-3]$ ]]; do
-					read -rp"Curve [1-3]: " -e -i 1 CERT_CURVE_CHOICE
+					read -rp"Curve [1-3]: " -e CERT_CURVE_CHOICE
 				done
 				case $CERT_CURVE_CHOICE in
 					1)
@@ -409,7 +391,7 @@ function installQuestions () {
 				echo "   2) 3072 bits"
 				echo "   3) 4096 bits"
 				until [[ "$RSA_KEY_SIZE_CHOICE" =~ ^[1-3]$ ]]; do
-					read -rp "RSA key size [1-3]: " -e -i 1 RSA_KEY_SIZE_CHOICE
+					read -rp "RSA key size [1-3]: " -e RSA_KEY_SIZE_CHOICE
 				done
 				case $RSA_KEY_SIZE_CHOICE in
 					1)
@@ -431,7 +413,7 @@ function installQuestions () {
 				echo "   1) ECDHE-ECDSA-AES-128-GCM-SHA256 (recommended)"
 				echo "   2) ECDHE-ECDSA-AES-256-GCM-SHA384"
 				until [[ $CC_CIPHER_CHOICE =~ ^[1-2]$ ]]; do
-					read -rp"Control channel cipher [1-2]: " -e -i 1 CC_CIPHER_CHOICE
+					read -rp"Control channel cipher [1-2]: " -e CC_CIPHER_CHOICE
 				done
 				case $CC_CIPHER_CHOICE in
 					1)
@@ -446,7 +428,7 @@ function installQuestions () {
 				echo "   1) ECDHE-RSA-AES-128-GCM-SHA256 (recommended)"
 				echo "   2) ECDHE-RSA-AES-256-GCM-SHA384"
 				until [[ $CC_CIPHER_CHOICE =~ ^[1-2]$ ]]; do
-					read -rp"Control channel cipher [1-2]: " -e -i 1 CC_CIPHER_CHOICE
+					read -rp"Control channel cipher [1-2]: " -e CC_CIPHER_CHOICE
 				done
 				case $CC_CIPHER_CHOICE in
 					1)
@@ -463,7 +445,7 @@ function installQuestions () {
 		echo "   1) ECDH (recommended)"
 		echo "   2) DH"
 		until [[ $DH_TYPE =~ [1-2] ]]; do
-			read -rp"DH key type [1-2]: " -e -i 1 DH_TYPE
+			read -rp"DH key type [1-2]: " -e DH_TYPE
 		done
 		case $DH_TYPE in
 			1)
@@ -473,7 +455,7 @@ function installQuestions () {
 				echo "   2) secp384r1"
 				echo "   3) secp521r1"
 				while [[ $DH_CURVE_CHOICE != "1" && $DH_CURVE_CHOICE != "2" && $DH_CURVE_CHOICE != "3" ]]; do
-					read -rp"Curve [1-3]: " -e -i 1 DH_CURVE_CHOICE
+					read -rp"Curve [1-3]: " -e DH_CURVE_CHOICE
 				done
 				case $DH_CURVE_CHOICE in
 					1)
@@ -494,7 +476,7 @@ function installQuestions () {
 				echo "   2) 3072 bits"
 				echo "   3) 4096 bits"
 				until [[ "$DH_KEY_SIZE_CHOICE" =~ ^[1-3]$ ]]; do
-					read -rp "DH key size [1-3]: " -e -i 1 DH_KEY_SIZE_CHOICE
+					read -rp "DH key size [1-3]: " -e DH_KEY_SIZE_CHOICE
 				done
 				case $DH_KEY_SIZE_CHOICE in
 					1)
@@ -521,7 +503,7 @@ function installQuestions () {
 		echo "   2) SHA-384"
 		echo "   3) SHA-512"
 		until [[ $HMAC_ALG_CHOICE =~ ^[1-3]$ ]]; do
-			read -rp "Digest algorithm [1-3]: " -e -i 1 HMAC_ALG_CHOICE
+			read -rp "Digest algorithm [1-3]: " -e HMAC_ALG_CHOICE
 		done
 		case $HMAC_ALG_CHOICE in
 			1)
@@ -540,7 +522,7 @@ function installQuestions () {
 		echo "   1) tls-crypt (recommended)"
 		echo "   2) tls-auth"
 		until [[ $TLS_SIG =~ [1-2] ]]; do
-				read -rp "Control channel additional security mechanism [1-2]: " -e -i 1 TLS_SIG
+				read -rp "Control channel additional security mechanism [1-2]: " -e TLS_SIG
 		done
 	fi
 	echo ""
@@ -586,7 +568,7 @@ function installOpenVPN () {
 		echo ""
 		unset CONTINUE
 		until [[ $CONTINUE =~ (y|n) ]]; do
-			read -rp "Continue? [y/n]: " -e -i y CONTINUE
+			read -rp "Continue? [y/n]: " -e CONTINUE
 		done
 		if [[ "$CONTINUE" = "n" ]]; then
 			echo "Exiting because user did not permit updating the system."
@@ -927,13 +909,10 @@ tls-cipher $CC_CIPHER
 setenv opt block-outside-dns # Prevent Windows 10 DNS leak
 verb 3" >> /etc/openvpn/client-template.txt
 
-if [[ $COMPRESSION_ENABLED == "y"  ]]; then
-	echo "compress $COMPRESSION_ALG" >> /etc/openvpn/client-template.txt
-fi
+    if [[ $COMPRESSION_ENABLED == "y"  ]]; then
+        echo "compress $COMPRESSION_ALG" >> /etc/openvpn/client-template.txt
+    fi
 
-	# Generate the custom client.ovpn
-	newClient
-	echo "If you want to add more clients, you simply need to run this script another time!"
 }
 
 function newClient () {
@@ -952,7 +931,7 @@ function newClient () {
 	echo "   2) Use a password for the client"
 
 	until [[ "$PASS" =~ ^[1-2]$ ]]; do
-		read -rp "Select an option [1-2]: " -e -i 1 PASS
+		read -rp "Select an option [1-2]: " -e PASS
 	done
 
 	cd /etc/openvpn/easy-rsa/ || return
@@ -1091,7 +1070,7 @@ function removeUnbound () {
 
 function removeOpenVPN () {
 	echo ""
-	read -rp "Do you really want to remove OpenVPN? [y/n]: " -e -i n REMOVE
+	read -rp "Do you really want to remove OpenVPN? [y/n]: " -e REMOVE
 	if [[ "$REMOVE" = 'y' ]]; then
 		# Get OpenVPN port from the configuration
 		PORT=$(grep '^port ' /etc/openvpn/server.conf | cut -d " " -f 2)
